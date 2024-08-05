@@ -13,7 +13,7 @@ let PAYPAL_API_BASE_URL = "https://api-m.sandbox.paypal.com";
 
 const app = express();
 
-const clientPath = path.join(__dirname, "/client");
+const clientPath = path.join(__dirname, "./client");
 app.use(express.static(clientPath));
 // app.set("view engine", "ejs");
 // app.set("views", "public");
