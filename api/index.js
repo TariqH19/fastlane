@@ -322,6 +322,10 @@ const get_access_token = async () => {
   return auth_response;
 };
 
+app.get("/", (req, res) => {
+  res.sendFile(path.join(clientPath, "index.html"));
+});
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
