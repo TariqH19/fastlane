@@ -322,8 +322,8 @@ const get_access_token = async () => {
   return auth_response;
 };
 
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve("../client/index.html"));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(clientPath, "index.html"));
 });
 
 app.listen(port, () => {
