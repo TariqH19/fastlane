@@ -39,7 +39,7 @@ let customer_context_id;
 let tokenize_response;
 let tokenize_id;
 let order_id;
-let server_endpoint = "http://localhost:3000/api/"; // Replace with your own server endpoint
+let server_endpoint = "https://fastlane-sand.vercel.app/api/"; // Replace with your own server endpoint
 let single_use_token;
 let fastlane_options_object;
 let payment_source;
