@@ -15,8 +15,8 @@ const app = express();
 
 const clientPath = path.join(__dirname, "./client");
 app.use(express.static(clientPath));
-// app.set("view engine", "ejs");
-// app.set("views", "public");
+app.set("view engine", "ejs");
+app.set("views", "./public");
 
 app.use(express.json());
 
