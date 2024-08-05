@@ -15,8 +15,8 @@ const app = express();
 
 const clientPath = path.join(__dirname, "./client");
 app.use(express.static(clientPath));
-app.set("view engine", "ejs");
-app.set("views", "./public");
+// app.set("view engine", "ejs");
+// app.set("views", "./public");
 
 app.use(express.json());
 
@@ -323,7 +323,7 @@ const get_access_token = async () => {
 };
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(clientPath, "index.html"));
+  res.sendFile(path.resolve("../client/index.html"));
 });
 
 app.listen(port, () => {
