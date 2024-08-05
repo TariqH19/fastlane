@@ -13,10 +13,10 @@ let PAYPAL_API_BASE_URL = "https://api-m.sandbox.paypal.com";
 
 const app = express();
 
-const clientPath = path.join(__dirname, "/client");
+const clientPath = path.join(__dirname, "./client");
 app.use(express.static(clientPath));
 // app.set("view engine", "ejs");
-// app.set("views", "public");
+// app.set("views", "./public");
 
 app.use(express.json());
 
@@ -321,6 +321,10 @@ const get_access_token = async () => {
   let auth_response = await auth_request.json();
   return auth_response;
 };
+
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve("../client/index.html"));
+});
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
