@@ -184,11 +184,11 @@ const create_order = async (request_object) => {
     let create_order_endpoint = `${PAYPAL_API_BASE_URL}/v2/checkout/orders`;
     let purchase_unit_object = {
       amount: {
-        currency_code: "USD",
+        currency_code: "GBP",
         value: amount,
         breakdown: {
           item_total: {
-            currency_code: "USD",
+            currency_code: "GBP",
             value: amount,
           },
         },
@@ -199,7 +199,7 @@ const create_order = async (request_object) => {
           quantity: "1",
           category: shipping_address ? "PHYSICAL_GOODS" : "DIGITAL_GOODS",
           unit_amount: {
-            currency_code: "USD",
+            currency_code: "GBP",
             value: amount,
           },
         },
@@ -214,7 +214,7 @@ const create_order = async (request_object) => {
             type: "SHIPPING",
             selected: true,
             amount: {
-              currency_code: "USD",
+              currency_code: "GBP",
               value: "0.00",
             },
           },
@@ -224,7 +224,7 @@ const create_order = async (request_object) => {
             type: "SHIPPING",
             selected: false,
             amount: {
-              currency_code: "USD",
+              currency_code: "GBP",
               value: "3.50",
             },
           },
