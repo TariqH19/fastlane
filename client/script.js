@@ -70,7 +70,7 @@ function init_paypal_script_tag(data) {
     "AYKEHhMOHxkycKjSnN548FOs6qDSY-FT_97BIziC-GvhPIbXgb5pdunsni91NhaBvD590azAxRqkZntY";
   // Setting script tag attributes
   script_tag = document.createElement("script");
-  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane&enable-funding=venmo&disable-funding=card,paylater&buyer-country=GB&currency=GBP`;
+  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane&enable-funding=venmo&disable-funding=card,paylater&buyer-country=US&currency=USD`;
   script_tag.setAttribute("data-user-id-token", access_token);
   script_tag.setAttribute("data-client-metadata-id", "testing-sb-fastlane");
   document.head.appendChild(script_tag);
