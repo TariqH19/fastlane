@@ -1,10 +1,10 @@
 const express = require("express");
-const bodyParser = require("body-parser");
+require("./api/configs/db.js")();
 const fetch = require("node-fetch");
 require("dotenv").config();
 const path = require("path");
-
-const port = 3000;
+const cors = require("cors");
+const port = 3333;
 
 let PAYPAL_CLIENT = process.env.PAYPAL_CLIENT;
 let PAYPAL_SECRET = process.env.PAYPAL_SECRET;
@@ -12,8 +12,8 @@ let FASTLANE_APPROVED_DOMAINS_CSV = process.env.FASTLANE_APPROVED_DOMAINS_CSV;
 let PAYPAL_API_BASE_URL = "https://api-m.sandbox.paypal.com";
 
 const app = express();
-
-const clientPath = path.join(__dirname, "/client");
+app.use(cors());
+const clientPath = path.join(__dirname, "./client");
 app.use(express.static(clientPath));
 // app.set("view engine", "ejs");
 // app.set("views", "./public");
@@ -322,9 +322,12 @@ const get_access_token = async () => {
   return auth_response;
 };
 
-app.get("*", (req, res) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
+
+app.use("/custom", require("./api/routes/custom.js"));
+app.use("/cart", require("./api/routes/cart.js"));
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

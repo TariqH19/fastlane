@@ -4,7 +4,7 @@ const fetch = require("node-fetch");
 require("dotenv").config();
 const path = require("path");
 const cors = require("cors");
-const port = 3000;
+const port = 3333;
 
 let PAYPAL_CLIENT = process.env.PAYPAL_CLIENT;
 let PAYPAL_SECRET = process.env.PAYPAL_SECRET;
@@ -322,12 +322,12 @@ const get_access_token = async () => {
   return auth_response;
 };
 
-app.get("*", (req, res) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-app.use("/api/custom", require("./routes/custom.js"));
-app.use("/api/cart", require("./routes/cart.js"));
+app.use("/custom", require("./routes/custom.js"));
+app.use("/cart", require("./routes/cart.js"));
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

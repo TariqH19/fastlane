@@ -1,7 +1,7 @@
-const Custom = require("../models/custom.model.js");
+const Cart = require("../models/cart.model.js");
 
 const readData = (req, res) => {
-  Custom.find({})
+  Cart.find({})
     .then((data) => {
       console.log(data);
 
@@ -12,7 +12,7 @@ const readData = (req, res) => {
       }
     })
     .catch((err) => {
-      console.log(`Error getting all Customs ${err}`);
+      console.log(`Error getting all Carts ${err}`);
       res.status(500).json(err);
     });
 };
@@ -21,10 +21,13 @@ const createData = (req, res) => {
   console.log(req.body);
 
   let inputData = req.body;
+  if (req.file) {
+    inputData.file_path = req.file.filename;
+  }
 
-  Custom.create(inputData)
+  Cart.create(inputData)
     .then((data) => {
-      console.log(`new Custom created`);
+      console.log(`new Cart created`);
       res.status(201).json(data);
     })
     .catch((err) => {
