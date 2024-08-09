@@ -327,6 +327,7 @@ app.get("*", (req, res) => {
 });
 
 app.use("/api/custom", require("./routes/custom.js"));
+app.use("/api/cart", require("./routes/cart.js"));
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
