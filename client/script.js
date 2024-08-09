@@ -70,7 +70,7 @@ function init_paypal_script_tag(data) {
     "AYKEHhMOHxkycKjSnN548FOs6qDSY-FT_97BIziC-GvhPIbXgb5pdunsni91NhaBvD590azAxRqkZntY";
   // Setting script tag attributes
   script_tag = document.createElement("script");
-  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane&disable-funding=card,paylater`;
+  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane&enable-funding=venmo&disable-funding=card,paylater&buyer-country=US&currency=USD`;
   script_tag.setAttribute("data-user-id-token", access_token);
   script_tag.setAttribute("data-client-metadata-id", "testing-sb-fastlane");
   document.head.appendChild(script_tag);
@@ -89,8 +89,8 @@ function init_paypal_payment_options() {
     },
   });
   paypal_button.render("#paypal_button_container");
-  // venmo_button = bootstrap_standard_button({ fundingSource: "venmo" });
-  // venmo_button.render("#venmo_button_container");
+  venmo_button = bootstrap_standard_button({ fundingSource: "venmo" });
+  venmo_button.render("#venmo_button_container");
 }
 // Initializes Fastlane methods and sets up event handlers.
 async function init_fastlane_methods() {
@@ -472,13 +472,13 @@ function ui_display_remaining_elements() {
   email_input_element.style.display = "block";
   show_card_fields_button.style.display = "block";
   paypal_button_container.style.display = "block";
-  // venmo_button_container.style.display = "block";
+  venmo_button_container.style.display = "block";
   payment_submit_button.style.display = "block";
 }
 
 function ui_handle_show_card_fields() {
   paypal_button_container.style.display = "none";
-  // venmo_button_container.style.display = "none";
+  venmo_button_container.style.display = "none";
   show_card_fields_button.style.display = "none";
 }
 
