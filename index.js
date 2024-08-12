@@ -357,8 +357,36 @@ app.post("/api/customs", async (req, res) => {
   }
 });
 
-app.use("/cart", require("./api/routes/cart.js"));
+app.get("/api/cart", async (req, res) => {
+  try {
+    const data = await Custom.find({});
+    if (data.length > 0) {
+      res.status(200).json(data);
+    } else {
+      res.status(404).json("None Found");
+    }
+  } catch (err) {
+    console.error(`Error getting all cart: ${err}`);
+    res.status(500).json(err);
+  }
+});
 
+// Endpoint to create data
+app.post("/api/cart", async (req, res) => {
+  try {
+    const inputData = req.body;
+    const data = await Custom.create(inputData);
+    console.log("New Custom created");
+    res.status(201).json(data);
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      res.status(422).json(err);
+    } else {
+      console.error(err);
+      res.status(500).json(err);
+    }
+  }
+});
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
