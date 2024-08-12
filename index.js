@@ -322,12 +322,12 @@ const get_access_token = async () => {
   return auth_response;
 };
 
-app.get("/", (req, res) => {
+app.get("/h", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-app.use("/custom", require("./routes/custom.js"));
-app.use("/cart", require("./routes/cart.js"));
+app.use("/custom", require("./apiroutes/custom.js"));
+app.use("/cart", require("./api/routes/cart.js"));
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
