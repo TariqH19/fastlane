@@ -326,6 +326,42 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
+mongoose.connect(process.env.DB_ATLAS_URL, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Define the schema and model for "Custom"
+const customSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    notes: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+const Custom = mongoose.model("Custom", customSchema);
+
+const cartSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    notes: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+const Cart = mongoose.model("Cart", cartSchema);
+
 app.get("/api/customs", async (req, res) => {
   try {
     const data = await Custom.find({});
@@ -357,26 +393,26 @@ app.post("/api/customs", async (req, res) => {
   }
 });
 
-app.get("/api/cart", async (req, res) => {
+app.get("/api/carts", async (req, res) => {
   try {
-    const data = await Custom.find({});
+    const data = await Cart.find({});
     if (data.length > 0) {
       res.status(200).json(data);
     } else {
       res.status(404).json("None Found");
     }
   } catch (err) {
-    console.error(`Error getting all cart: ${err}`);
+    console.error(`Error getting all carts: ${err}`);
     res.status(500).json(err);
   }
 });
 
 // Endpoint to create data
-app.post("/api/cart", async (req, res) => {
+app.post("/api/carts", async (req, res) => {
   try {
     const inputData = req.body;
-    const data = await Custom.create(inputData);
-    console.log("New Custom created");
+    const data = await Cart.create(inputData);
+    console.log("New Cart created");
     res.status(201).json(data);
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -387,6 +423,7 @@ app.post("/api/cart", async (req, res) => {
     }
   }
 });
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
