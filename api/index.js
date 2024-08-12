@@ -326,7 +326,37 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-app.use("/custom", require(".api/routes/custom.js"));
+app.get("/api/customs", async (req, res) => {
+  try {
+    const data = await Custom.find({});
+    if (data.length > 0) {
+      res.status(200).json(data);
+    } else {
+      res.status(404).json("None Found");
+    }
+  } catch (err) {
+    console.error(`Error getting all Customs: ${err}`);
+    res.status(500).json(err);
+  }
+});
+
+// Endpoint to create data
+app.post("/api/customs", async (req, res) => {
+  try {
+    const inputData = req.body;
+    const data = await Custom.create(inputData);
+    console.log("New Custom created");
+    res.status(201).json(data);
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      res.status(422).json(err);
+    } else {
+      console.error(err);
+      res.status(500).json(err);
+    }
+  }
+});
+
 app.use("/cart", require("./routes/cart.js"));
 
 app.listen(port, () => {
