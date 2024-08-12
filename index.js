@@ -322,11 +322,11 @@ const get_access_token = async () => {
   return auth_response;
 };
 
-app.get("/h", (req, res) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-app.use("/custom", require("./apiroutes/custom.js"));
+app.use("/custom", require("./api/routes/custom.js"));
 app.use("/cart", require("./api/routes/cart.js"));
 
 app.listen(port, () => {

@@ -326,7 +326,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
 });
 
-app.use("/custom", require("./routes/custom.js"));
+app.use("/custom", require(".api/routes/custom.js"));
 app.use("/cart", require("./routes/cart.js"));
 
 app.listen(port, () => {
