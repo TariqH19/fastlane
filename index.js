@@ -2,6 +2,7 @@ const express = require("express");
 require("./api/configs/db.js")();
 const fetch = require("node-fetch");
 require("dotenv").config();
+const mongoose = require("mongoose");
 const path = require("path");
 const cors = require("cors");
 const port = 3333;
