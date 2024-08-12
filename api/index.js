@@ -20,6 +20,37 @@ app.use(express.static(clientPath));
 
 app.use(express.json());
 
+app.get("/api/customs", async (req, res) => {
+  try {
+    const data = await Custom.find({});
+    if (data.length > 0) {
+      res.status(200).json(data);
+    } else {
+      res.status(404).json("None Found");
+    }
+  } catch (err) {
+    console.error(`Error getting all Customs: ${err}`);
+    res.status(500).json(err);
+  }
+});
+
+// Endpoint to create data
+app.post("/api/customs", async (req, res) => {
+  try {
+    const inputData = req.body;
+    const data = await Custom.create(inputData);
+    console.log("New Custom created");
+    res.status(201).json(data);
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      res.status(422).json(err);
+    } else {
+      console.error(err);
+      res.status(500).json(err);
+    }
+  }
+});
+
 app.post("/api", async (req, res) => {
   let request_body = req.body;
   console.log("Received request:", request_body);
@@ -324,37 +355,6 @@ const get_access_token = async () => {
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(clientPath, "index.html"));
-});
-
-app.get("/api/customs", async (req, res) => {
-  try {
-    const data = await Custom.find({});
-    if (data.length > 0) {
-      res.status(200).json(data);
-    } else {
-      res.status(404).json("None Found");
-    }
-  } catch (err) {
-    console.error(`Error getting all Customs: ${err}`);
-    res.status(500).json(err);
-  }
-});
-
-// Endpoint to create data
-app.post("/api/customs", async (req, res) => {
-  try {
-    const inputData = req.body;
-    const data = await Custom.create(inputData);
-    console.log("New Custom created");
-    res.status(201).json(data);
-  } catch (err) {
-    if (err.name === "ValidationError") {
-      res.status(422).json(err);
-    } else {
-      console.error(err);
-      res.status(500).json(err);
-    }
-  }
 });
 
 app.use("/cart", require("./routes/cart.js"));
