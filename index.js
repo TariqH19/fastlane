@@ -456,6 +456,20 @@ app.post("/api/emails", async (req, res) => {
   }
 });
 
+app.get("/api/emails", async (req, res) => {
+  try {
+    const data = await Email.find({});
+    if (data.length > 0) {
+      res.status(200).json(data);
+    } else {
+      res.status(404).json("None Found");
+    }
+  } catch (err) {
+    console.error(`Error getting all emails: ${err}`);
+    res.status(500).json(err);
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
