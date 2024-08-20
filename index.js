@@ -363,6 +363,21 @@ const cartSchema = new mongoose.Schema(
 
 const Cart = mongoose.model("Cart", cartSchema);
 
+const emailSchema = new mongoose.Schema(
+  {
+    merchant: {
+      type: String,
+      required: true,
+    },
+    engineer: {
+      type: String,
+    },
+  },
+  { timestamps: true }
+);
+
+const Email = mongoose.model("Email", emailSchema);
+
 app.get("/api/customs", async (req, res) => {
   try {
     const data = await Custom.find({});
@@ -414,6 +429,22 @@ app.post("/api/carts", async (req, res) => {
     const inputData = req.body;
     const data = await Cart.create(inputData);
     console.log("New Cart created");
+    res.status(201).json(data);
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      res.status(422).json(err);
+    } else {
+      console.error(err);
+      res.status(500).json(err);
+    }
+  }
+});
+
+app.post("/api/emails", async (req, res) => {
+  try {
+    const inputData = req.body;
+    const data = await Email.create(inputData);
+    console.log("New Email created");
     res.status(201).json(data);
   } catch (err) {
     if (err.name === "ValidationError") {
