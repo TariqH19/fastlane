@@ -10,7 +10,7 @@ let access_token;
 let client_id;
 let script_tag;
 let paypal_button;
-let venmo_button;
+// let venmo_button;
 let method;
 let amount_input_element = document.getElementById("amount");
 let payment_form = document.getElementById("payment_form");
@@ -30,7 +30,7 @@ let show_card_fields_button = document.getElementById("show_card_fields");
 let paypal_button_container = document.getElementById(
   "paypal_button_container"
 );
-let venmo_button_container = document.getElementById("venmo_button_container");
+// let venmo_button_container = document.getElementById("venmo_button_container");
 let auth_flow_response;
 let authentication_state;
 let card_fields_container = document.getElementById("card_fields_container");
@@ -39,10 +39,11 @@ let customer_context_id;
 let tokenize_response;
 let tokenize_id;
 let order_id;
-let server_endpoint = "https://fastlane-sand.vercel.app/api/"; // Replace with your own server endpoint
+let server_endpoint = "/api"; // Replace with your own server endpoint
 let single_use_token;
 let fastlane_options_object;
 let payment_source;
+let paypalClientNonce;
 
 // Entry point
 get_auth()
@@ -65,17 +66,23 @@ function get_auth() {
 }
 // Initializes the PayPal script tag with the provided access token.
 function init_paypal_script_tag(data) {
-  access_token = data.access_token;
+  const client_token = data.client_token?.access_token;
+  const dats = data.client_token.access_token;
+  paypalClientNonce = data.client_token.nonce;
+  console.log("nonce", paypalClientNonce);
+  console.log("dats", dats);
+  console.log("object of auth", data);
   client_id =
     "AYKEHhMOHxkycKjSnN548FOs6qDSY-FT_97BIziC-GvhPIbXgb5pdunsni91NhaBvD590azAxRqkZntY";
-  // Setting script tag attributes
-  script_tag = document.createElement("script");
-  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane&enable-funding=venmo&disable-funding=card,paylater&buyer-country=GB&currency=GBP`;
-  script_tag.setAttribute("data-user-id-token", access_token);
-  script_tag.setAttribute("data-client-metadata-id", "testing-sb-fastlane");
+
+  const script_tag = document.createElement("script");
+  script_tag.src = `https://www.paypal.com/sdk/js?client-id=${client_id}&components=buttons,fastlane,three-domain-secure&disable-funding=card,paylater&buyer-country=GB&currency=GBP`;
+  script_tag.setAttribute("data-sdk-client-token", client_token);
+
   document.head.appendChild(script_tag);
   script_tag.onload = init_paypal_payment_options;
 }
+
 // Initializes PayPal payment options by setting up Fastlane and PayPal buttons.
 function init_paypal_payment_options() {
   init_fastlane_methods();
@@ -88,16 +95,16 @@ function init_paypal_payment_options() {
       height: 55,
     },
   });
-  paypal_button.render("#paypal_button_container");
-  venmo_button = bootstrap_standard_button({ fundingSource: "venmo" });
-  venmo_button.render("#venmo_button_container");
+  // paypal_button.render("#paypal_button_container");
+  // venmo_button = bootstrap_standard_button({ fundingSource: "venmo" });
+  // venmo_button.render("#venmo_button_container");
 }
 // Initializes Fastlane methods and sets up event handlers.
 async function init_fastlane_methods() {
   let fastlane = await window.paypal.Fastlane({});
-  fastlane.setLocale("en_us");
+  fastlane.setLocale("en_gb");
   profile = fastlane.profile;
-  FastlanePaymentComponent = fastlane.FastlanePaymentComponent;
+  FastlanePaymentComponent = fastlane.FastlaneCardComponent;
   identity = fastlane.identity;
   // Fastlane watermark component
   FastlaneWatermarkComponent = await fastlane.FastlaneWatermarkComponent({
@@ -317,52 +324,89 @@ function handle_guest_payer() {
 }
 // Processes the payment using the provided tokenize ID and payment source.
 async function process_payment(object) {
-  single_use_token = object.single_use_token;
-  payment_source = object.payment_source;
-  order_id = object.order_id;
-  console.log(
-    "Processing payment, have this profile data avail:",
-    profile_data
-  );
-  // Determine the method based on the payment source
+  const threeDomainSecureComponent = window.paypal.ThreeDomainSecureClient;
+
+  const { single_use_token, payment_source, order_id } = object;
+  let method;
+
+  const threeDomainSecureParameters = {
+    amount: "12.00",
+    currency: "USD",
+    nonce: single_use_token, // Must come from Fastlane
+    threeDSRequested: true,
+    transactionContext: {
+      experience_context: {
+        brand_name: "YourBrandName",
+        locale: "en-US",
+        return_url: "https://example.com/returnUrl",
+        cancel_url: "https://example.com/cancelUrl",
+      },
+      transaction_context: {
+        soft_descriptor: "Card verification hold",
+      },
+    },
+  };
+
+  const isThreeDomainSecureEligible =
+    await threeDomainSecureComponent.isEligible(threeDomainSecureParameters);
+
+  let enrichedNonce = paypalClientNonce;
+
+  if (isThreeDomainSecureEligible) {
+    const { liabilityShift, authenticationState, nonce } =
+      await threeDomainSecureComponent.show();
+
+    console.log("3DS Result:", {
+      liabilityShift,
+      authenticationState,
+      nonce,
+    });
+
+    if (liabilityShift === "YES") {
+      enrichedNonce = nonce; // Use enriched nonce for payment
+    } else {
+      alert("3D Secure authentication failed or was cancelled.");
+      revert_submit_button_ui();
+      return;
+    }
+  }
+
+  console.log("single_use_token", single_use_token);
+
   if (payment_source === "card") {
     method = "card_order";
-    console.log(
-      `Processing payment with single_use_token: ${single_use_token} and payment_source: ${payment_source}`
-    );
   } else {
     method = "complete_order";
-    console.log(
-      `Processing payment with order_id: ${order_id} and payment_source: ${payment_source}`
-    );
   }
-  // Set up fetch options for the API call
-  payment_fetch_options = {
+
+  const payment_fetch_options = {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      method: method,
+      method,
       amount: amount_input_element.value,
-      order_id: order_id,
-      payment_source: payment_source,
-      single_use_token: single_use_token,
+      order_id,
+      payment_source,
+      single_use_token,
+      nonce: enrichedNonce, // send the enriched nonce to your server
     }),
   };
+
   try {
     console.log("Sending payment request to the server...");
-    // Send the payment request to the server
-    fetch(server_endpoint, payment_fetch_options)
-      .then((response) => response.json())
-      .then((process_payment_response) => {
-        ui_display_receipt(process_payment_response);
-      });
+    const response = await fetch(server_endpoint, payment_fetch_options);
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+    const process_payment_response = await response.json();
+    ui_display_receipt(process_payment_response);
   } catch (error) {
     revert_submit_button_ui();
-    // Replace with your own custom UI error handling
     alert("Error processing payment. Please try again.");
     console.error("Error processing payment:", error);
   }
 }
+
 // Initializes PayPal buttons and sets up event handlers for order creation and approval.
 function bootstrap_standard_button(options_object) {
   paypal_button_options = {
@@ -425,33 +469,53 @@ function bootstrap_standard_button(options_object) {
 
 function ui_display_receipt(process_payment_response) {
   console.log("Payment response received:", process_payment_response);
+
   // Hide the left and right cards
   document.getElementById("card-content-left").style.display = "none";
   document.getElementById("card-content-right").style.display = "none";
+
   // Show the receipt card
   document.getElementById("card-content-receipt").style.display = "block";
+
   // Update the receipt with the payment response information
-  let amount_paid = process_payment_response.amount.value;
-  let currency_code = process_payment_response.amount.currency;
-  document.getElementById(
-    "amount_paid"
-  ).textContent = `${amount_paid} ${currency_code}`;
+  let amount_paid = process_payment_response?.amount?.value;
+  let currency_code = process_payment_response?.amount?.currency;
+
+  if (amount_paid && currency_code) {
+    document.getElementById(
+      "amount_paid"
+    ).textContent = `${amount_paid} ${currency_code}`;
+  } else {
+    console.error("Amount or currency missing in payment response");
+  }
 
   let payment_method_element = document.getElementById("payment_method");
   let buyer_email_element = document.getElementById("buyer_email");
 
-  if (process_payment_response.payment_method.type === "card") {
-    payment_method_element.textContent = `💳 ${process_payment_response.payment_method.details.brand} ending in ${process_payment_response.payment_method.details.last_digits}`;
-    buyer_email_element.textContent = document.getElementById("email").value;
-  } else if (
-    process_payment_response.payment_method.type === "paypal" ||
-    process_payment_response.payment_method.type === "venmo"
-  ) {
-    payment_method_element.textContent =
-      process_payment_response.payment_method.type.charAt(0).toUpperCase() +
-      process_payment_response.payment_method.type.slice(1);
-    buyer_email_element.textContent =
-      process_payment_response.payment_method.details.email;
+  if (process_payment_response?.payment_method) {
+    const paymentMethod = process_payment_response.payment_method;
+
+    if (paymentMethod?.type === "card" && paymentMethod?.details) {
+      payment_method_element.textContent = `💳 ${paymentMethod.details.brand} ending in ${paymentMethod.details.last_digits}`;
+      buyer_email_element.textContent = document.getElementById("email").value;
+    } else if (
+      paymentMethod?.type === "paypal"
+      // paymentMethod?.type === "venmo"
+    ) {
+      payment_method_element.textContent =
+        paymentMethod.type.charAt(0).toUpperCase() +
+        paymentMethod.type.slice(1);
+
+      if (paymentMethod?.details?.email) {
+        buyer_email_element.textContent = paymentMethod.details.email;
+      } else {
+        // console.error("Email missing for PayPal/Venmo");
+      }
+    } else {
+      console.log("Unknown payment method type:", paymentMethod?.type);
+    }
+  } else {
+    console.error("Payment method is missing in the payment response");
   }
 }
 
@@ -472,13 +536,13 @@ function ui_display_remaining_elements() {
   email_input_element.style.display = "block";
   show_card_fields_button.style.display = "block";
   paypal_button_container.style.display = "block";
-  venmo_button_container.style.display = "block";
+  // venmo_button_container.style.display = "block";
   payment_submit_button.style.display = "block";
 }
 
 function ui_handle_show_card_fields() {
   paypal_button_container.style.display = "none";
-  venmo_button_container.style.display = "none";
+  // venmo_button_container.style.display = "none";
   show_card_fields_button.style.display = "none";
 }
 

@@ -21,82 +21,6 @@ app.use(express.static(clientPath));
 
 app.use(express.json());
 
-app.post("/paypal/shipping-options", async (req, res) => {
-  try {
-    const shippingAddress = req.body.shipping_address;
-    console.log("Incoming shipping address from PayPal:", shippingAddress);
-
-    const response = {
-      id: "2EP9GYF4AP7T4",
-      purchase_units: [
-        {
-          reference_id: "default",
-          amount: {
-            currency_code: "USD",
-            value: "0.00",
-            breakdown: {
-              shipping: {
-                currency_code: "USD",
-                value: "0.00",
-              },
-            },
-          },
-          shipping: {
-            amount: {
-              currency_code: "USD",
-              value: "0.00",
-            },
-          },
-          shipping_options: [
-            {
-              id: "1",
-              label: "Free Shipping",
-              type: "SHIPPING",
-              selected: true,
-              amount: {
-                currency_code: "USD",
-                value: "0.00",
-              },
-            },
-            {
-              id: "2",
-              label: "USPS Priority Shipping",
-              type: "SHIPPING",
-              selected: false,
-              amount: {
-                currency_code: "USD",
-                value: "7.00",
-              },
-            },
-            {
-              id: "3",
-              label: "1-Day Shipping",
-              type: "SHIPPING",
-              selected: false,
-              amount: {
-                currency_code: "USD",
-                value: "10.00",
-              },
-            },
-          ],
-        },
-      ],
-    };
-
-    res.setHeader(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-
-    res.json(response);
-  } catch (error) {
-    console.error("Error providing shipping options:", error);
-    res.status(500).json({ error: "Failed to provide shipping options" });
-  }
-});
-
 app.post("/api", async (req, res) => {
   let request_body = req.body;
   console.log("Received request:", request_body);
@@ -129,32 +53,40 @@ const handle_auth = async (res) => {
 
 const handle_fastlane_auth = async (res) => {
   try {
-    let access_token_response = await get_access_token();
-    let access_token = access_token_response.access_token;
-    let fastlane_auth_response = await fetch(
+    const auth = Buffer.from(`${PAYPAL_CLIENT}:${PAYPAL_SECRET}`).toString(
+      "base64"
+    );
+
+    const fastlane_auth_response = await fetch(
       `${PAYPAL_API_BASE_URL}/v1/oauth2/token`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Bearer ${access_token}`,
+          Authorization: `Basic ${auth}`,
         },
         body: new URLSearchParams({
           grant_type: "client_credentials",
           response_type: "client_token",
           intent: "sdk_init",
-          "domains[]": FASTLANE_APPROVED_DOMAINS_CSV,
+          "domains[]": FASTLANE_APPROVED_DOMAINS_CSV, // e.g., "yourdomain.com"
         }),
       }
     );
 
-    let fastlane_auth_response_json = await fastlane_auth_response.json();
+    // console.log(fastlane_auth_response);
+    const data = await fastlane_auth_response.json();
+
+    // if (!data.client_token) {
+    //   throw new Error("Missing client_token in PayPal response");
+    // }
+
     res.status(200).json({
-      access_token: fastlane_auth_response_json.access_token,
+      client_token: data,
     });
   } catch (error) {
     console.error("Error in handle_fastlane_auth:", error);
-    res.status(500).json(error.toString());
+    res.status(500).json({ error: error.toString() });
   }
 };
 
@@ -254,11 +186,12 @@ const capture_paypal_order = async (order_id) => {
 
 const create_order = async (request_object) => {
   try {
-    let { amount, payment_source, single_use_token, shipping_address } =
+    const { amount, payment_source, single_use_token, shipping_address } =
       request_object;
-    let access_token_response = await get_access_token();
-    let access_token = access_token_response.access_token;
-    let create_order_endpoint = `${PAYPAL_API_BASE_URL}/v2/checkout/orders`;
+    const access_token_response = await get_access_token();
+    const access_token = access_token_response.access_token;
+    const create_order_endpoint = `${PAYPAL_API_BASE_URL}/v2/checkout/orders`;
+
     let purchase_unit_object = {
       amount: {
         currency_code: "GBP",
@@ -282,6 +215,7 @@ const create_order = async (request_object) => {
         },
       ],
     };
+
     if (shipping_address) {
       purchase_unit_object.shipping = {
         options: [
@@ -295,16 +229,6 @@ const create_order = async (request_object) => {
               value: "0.00",
             },
           },
-          {
-            id: "my_custom_shipping_option_2",
-            label: "Basic Shipping",
-            type: "SHIPPING",
-            selected: false,
-            amount: {
-              currency_code: "GBP",
-              value: "3.50",
-            },
-          },
         ],
         name: {
           full_name: "John Doe",
@@ -313,11 +237,12 @@ const create_order = async (request_object) => {
       };
     }
 
-    let payload = {
+    const payload = {
       intent: "CAPTURE",
       purchase_units: [purchase_unit_object],
       payment_source: {},
     };
+
     payload.payment_source[payment_source] = {
       experience_context: {
         brand_name: "BUY ME",
@@ -326,60 +251,71 @@ const create_order = async (request_object) => {
         payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
       },
     };
+
     if (payment_source === "card") {
       purchase_unit_object.soft_descriptor = "BIZNAME HERE";
       payload.payment_source.card = {
         single_use_token: single_use_token,
+        attributes: {
+          verification: {
+            method: "SCA_ALWAYS",
+          },
+        },
       };
     }
+
     console.log(
       "Payload before creating Order:",
       JSON.stringify(payload, null, 2)
     );
-    let create_order_request = await fetch(create_order_endpoint, {
+
+    const create_order_request = await fetch(create_order_endpoint, {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${access_token}`,
         "PayPal-Request-Id": Math.random().toString(),
       },
-      method: "POST",
       body: JSON.stringify(payload),
     });
-    let json_response = await create_order_request.json();
+
+    const json_response = await create_order_request.json();
     console.log("Order API Response:", JSON.stringify(json_response, null, 2));
+
+    // Handle card payments
     if (payment_source === "card") {
-      let sanitized_card_capture_response = {
-        amount: {
-          value:
-            json_response.purchase_units[0].payments.captures[0].amount.value,
-          currency:
-            json_response.purchase_units[0].payments.captures[0].amount
-              .currency_code,
-        },
+      const capture =
+        json_response?.purchase_units?.[0]?.payments?.captures?.[0];
+      const card = capture?.payment_source?.card;
+
+      // if (!capture) {
+      //   throw new Error("Payment capture missing from PayPal response");
+      // }
+
+      const sanitized_card_capture_response = {
+        // amount: {
+        //   value: capture.amount?.value || amount,
+        //   currency: capture.amount?.currency_code || "GBP",
+        // },
         payment_method: {
-          type: "card",
+          // type: "card",
           details: {
-            name: json_response.purchase_units[0].payments.captures[0]
-              .payment_source.card.name,
-            last_digits:
-              json_response.purchase_units[0].payments.captures[0]
-                .payment_source.card.last_digits,
-            brand:
-              json_response.purchase_units[0].payments.captures[0]
-                .payment_source.card.brand,
-            billing_address:
-              json_response.purchase_units[0].payments.captures[0]
-                .payment_source.card.billing_address,
+            name: card?.name || "Cardholder",
+            last_digits: card?.last_digits || "****",
+            brand: card?.brand || "Unknown",
+            billing_address: card?.billing_address || null,
           },
         },
       };
+
       return sanitized_card_capture_response;
-    } else {
-      return json_response;
     }
+
+    // Handle non-card payments (e.g., PayPal or Venmo, which require capture later)
+    return json_response;
   } catch (error) {
     console.error("Error in create_order:", error);
-    throw error;
+    throw new Error(`Failed to create PayPal order: ${error.message}`);
   }
 };
 
