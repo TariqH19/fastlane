@@ -3,6 +3,7 @@ require("./api/configs/db.js")();
 const fetch = require("node-fetch");
 require("dotenv").config();
 const mongoose = require("mongoose");
+const nodemailer = require("nodemailer");
 const path = require("path");
 const cors = require("cors");
 const port = 3333;
@@ -466,6 +467,36 @@ app.post("/api/emails", async (req, res) => {
       res.status(500).json(err);
     }
   }
+});
+
+const USER = "tariqhoran88@gmail.com";
+const PASS = "fastLane11";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: USER,
+    pass: PASS,
+  },
+});
+
+app.post("/send-email", (req, res) => {
+  const { to, subject, text } = req.body;
+
+  const mailOptions = {
+    from: USER,
+    to,
+    subject,
+    text,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to send email" });
+    }
+    res.json({ success: true, message: "Email sent!" });
+  });
 });
 
 app.get("/api/emails", async (req, res) => {
